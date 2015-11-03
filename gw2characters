@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+from operator import itemgetter
+from os.path import expanduser
+import os.path
+import sys
+import json
+import requests
+import argparse
+import textwrap
+
+home = expanduser("~/")
+APIKeyfile = home + '.gw2APIKey'
+
+# Define command line args
+parser = argparse.ArgumentParser()
+parser.add_argument('-k', '--apikey', action='store', help='Specify your Guild Wars 2 API Key as created and found at https://account.arena.net/applications - This option is required at least once if you save it, every time if you do not.')
+parser.add_argument('-s', '--save', action='store_true', help='Save an API Key as specified with -k or --apikey to the API Key cache file so as to not be required to provide it in the future. Your key is stored in plain text locally on your system without any encryption or protection against snooping by anyone who has access to your files.')
+parser.add_argument('-d', '--delete', action='store_true', help='Delete an API Key Cache file that you have saved.')
+parserop = parser.add_mutually_exclusive_group()
+parserop.add_argument('-n', action='store_true', help='Set sort to Name (This is the default.)')
+parserop.add_argument('-p', action='store_true', help='Set sort to Profession')
+parserop.add_argument('-r', action='store_true', help='Set sort to Race')
+parserop.add_argument('-g', action='store_true', help='Set sort to Gender')
+parserop.add_argument('-l', action='store_true', help='Set sort to Level')
+opts = parser.parse_args()
+
+# Set sort option, defaults to name
+SORT = ['name']
+if opts.n:
+	SORT = ['name']
+if opts.p:
+        SORT = ['profession']
+if opts.r:
+        SORT = ['race']
+if opts.g:
+        SORT = ['gender']
+if opts.l:
+        SORT = ['level']
+
+# Handle option to delete Cached API Key
+if opts.delete:
+	if os.path.isfile(APIKeyfile):
+		x = str(input("\nAre you certain you want to delete your API Key cache file? (y/n)\n"))
+		if (x == 'y') or (x == 'Y') or (x == 'yes') or (x == 'Yes') or (x == 'YES'):
+			#if os.path.isfile(APIKeyfile):
+			os.remove(APIKeyfile)
+			print("\n" + textwrap.fill("Your API Key cache file at " + str(APIKeyfile) + " was removed.", width=77) + "\n")
+			quit()
+		elif (x == 'n') or (x == 'N') or (x == 'no') or (x == 'No') or (x == 'NO'):
+			print("\n" + textwrap.fill("Not removing " + str(APIKeyfile) + " because you opted not to.", width=77) + "\n")
+			quit()
+		else:
+			print("\nInput not understood. Exiting.\n")
+			quit()
+	else:
+		print("\n" + textwrap.fill("There does not appear to be an API Key cache file for your user. Doing nothing.", width=77) + "\n")
+		quit()
+
+# Check to see if we attempted to save nothing.
+if opts.save:
+	if (opts.apikey is None):
+		print("\n" + textwrap.fill("No key was passed to be saved with -k or --apikey. As a result nothing will be saved to " + APIKeyfile + " If you have a key saved already, we will proceed with that key.", width=77) + "\n")
+
+# Write API Key to file for use later if specified
+if ( opts.apikey and opts.save ):
+	file = open( APIKeyfile, 'w' )
+	file.write(opts.apikey)
+	file.close()
+
+# Check to see if a Key is already cached, use the Key passed from the command line if not, exit if no cache or pass
+if opts.apikey:
+	apikey = opts.apikey
+elif os.path.isfile(APIKeyfile):
+        file = open( APIKeyfile )
+        apikey = file.read()
+        file.close()
+else:
+	print("\n" + textwrap.fill("It seems that no API Key has been specified and no API Key cache file was found. Please set an API Key with the -k or --apikey options.", width=77) + "\n")
+	quit()
+
+# Create the API URL, make the request, and parse/print the results
+URL = "https://api.guildwars2.com/v2/characters?page=0&access_token=" + apikey
+headers = ["Name","Profession","Race","Gender","Level"]
+hr = "============================================================================="
+
+APIResponse = requests.get(URL)
+char_data = json.loads(APIResponse.text)
+
+try:
+	char_data['text']
+except TypeError:
+	print("\n" + hr)
+	print("|",headers[0].ljust(24),"|",headers[1].ljust(16),"|",headers[2].ljust(8),"|",headers[3].ljust(8),"|",headers[4].ljust(5),"|")
+	print(hr)
+
+	for character in sorted(char_data, key=itemgetter(*SORT)):
+		print("|",character['name'].ljust(24),"|",character['profession'].ljust(16),"|",character['race'].ljust(8),"|",character['gender'].ljust(8),"|",str(character['level']).ljust(5),"|")
+	print(hr + "\n")
+else:
+	if ( char_data['text'] == "invalid key"):
+		print("\n" + textwrap.fill("The API believes that an invalid key was encountered. Please set a correct key with the -k or --apikey options.", width=77) + "\n\n" + "The key believed to be invalid was:\n" + apikey + "\n")
