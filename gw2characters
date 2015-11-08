@@ -8,8 +8,14 @@ import requests
 import argparse
 import textwrap
 
-home = expanduser("~/")
+if "win32" in sys.platform:
+	home = expanduser("~\\")
+else:
+	home = expanduser("~/")
+
 APIKeyfile = home + '.gw2APIKey'
+headers = ["Name","Profession","Race","Gender","Level"]
+hr = "============================================================================="
 
 # Define command line args
 parser = argparse.ArgumentParser()
@@ -80,9 +86,6 @@ else:
 
 # Create the API URL, make the request, and parse/print the results
 URL = "https://api.guildwars2.com/v2/characters?page=0&access_token=" + apikey
-headers = ["Name","Profession","Race","Gender","Level"]
-hr = "============================================================================="
-
 APIResponse = requests.get(URL)
 char_data = json.loads(APIResponse.text)
 
