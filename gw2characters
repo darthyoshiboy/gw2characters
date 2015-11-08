@@ -92,11 +92,44 @@ char_data = json.loads(APIResponse.text)
 try:
 	char_data['text']
 except TypeError:
+
+	# Create our own list with blackjack and hookers: https://youtu.be/e35AQK014tI
+	# ...or at least with Elite specs swapped in for base classes
+	charactersf = []
+	elites = [5,7,18,27,34,40,43,48]
+	for charl in char_data:
+		try:
+			if charl['specializations']['pve'][2]['id'] not in elites:
+				profession = charl['profession']
+		except TypeError:
+			profession = charl['profession']
+		else:
+			special = charl['specializations']['pve'][2]['id']
+			if special is 5:
+				profession = 'Druid'
+			elif special is 7:
+				profession = 'Daredevil'
+			elif special is 18:
+				profession = 'Berserker'
+			elif special is 27:
+				profession = 'Dragonhunter'
+			elif special is 34:
+				profession = 'Reaper'
+			elif special is 40:
+				profession = 'Chronomancer'
+			elif special is 43:
+				profession = 'Scrapper'
+			elif special is 48:
+				profession = 'Tempest'
+
+		charactersf.append({'name':charl['name'],'profession':profession,'race':charl['race'],'gender':charl['gender'],'level':charl['level']})
+
+
 	print("\n" + hr)
 	print("|",headers[0].ljust(24),"|",headers[1].ljust(16),"|",headers[2].ljust(8),"|",headers[3].ljust(8),"|",headers[4].ljust(5),"|")
 	print(hr)
 
-	for character in sorted(char_data, key=itemgetter(*SORT)):
+	for character in sorted(charactersf, key=itemgetter(*SORT)):
 		print("|",character['name'].ljust(24),"|",character['profession'].ljust(16),"|",character['race'].ljust(8),"|",character['gender'].ljust(8),"|",str(character['level']).ljust(5),"|")
 	print(hr + "\n")
 else:
